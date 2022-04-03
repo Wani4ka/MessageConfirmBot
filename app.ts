@@ -1,3 +1,4 @@
+import 'dotenv/config'
 import { Client, Intents, MessageActionRow, MessageButton, TextChannel } from 'discord.js'
 const client = new Client({ intents: [Intents.FLAGS.GUILDS, Intents.FLAGS.GUILD_MESSAGES] })
 
@@ -65,3 +66,8 @@ client.on('messageCreate', async message => {
 })
 
 client.login(process.env.BOT_TOKEN)
+
+import express from 'express'
+const app = express()
+app.get('/', (_req, res) => res.send('ok'))
+app.listen(process.env.PORT || 3000, () => console.log('web server up'))
