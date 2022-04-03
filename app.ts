@@ -41,7 +41,7 @@ client.on('messageCreate', async message => {
 		const confirmChannel = await client.channels.fetch(confirmChannelID) as TextChannel
 		const response = await confirmChannel.send({ content, embeds, files, components })
 	
-		const collector = response.createMessageComponentCollector({ componentType: 'BUTTON', time: 15000 })
+		const collector = response.createMessageComponentCollector({ componentType: 'BUTTON' })
 		collector.on('collect', async i => {
 			acceptButton.setDisabled(true)
 			declineButton.setDisabled(true)
@@ -58,6 +58,7 @@ client.on('messageCreate', async message => {
 						content: i.customId === 'masterpiece.accept' ? 'Одобрено! Ищи себя в канале шедевров Мапперской' : 'Это сообщение было отклонено'
 					})
 			} catch (err) { console.error(err) }
+			collector.stop()
 		})
 	} catch (err) {
 		console.error(err)
