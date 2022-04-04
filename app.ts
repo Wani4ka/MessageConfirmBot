@@ -17,7 +17,6 @@ client.on('messageCreate', async message => {
 		const oldContent = message.content !== '' ? message.content : null
 		const content = `Сообщение от <@${message.author!.id}>:\n\n${oldContent || ''}`
 		const files = Array.from(message.attachments.values())
-		await message.delete()
 	
 		let messageId: string
 		try {
@@ -40,17 +39,20 @@ client.on('messageCreate', async message => {
 	
 		const confirmChannel = await client.channels.fetch(confirmChannelID) as TextChannel
 		const response = await confirmChannel.send({ content, embeds, files, components })
+		const newFiles = Array.from(message.attachments.values())
+
+		await message.delete()
 	
 		const collector = response.createMessageComponentCollector({ componentType: 'BUTTON' })
 		collector.on('collect', async i => {
 			acceptButton.setDisabled(true)
 			declineButton.setDisabled(true)
 			if (i.customId === 'masterpiece.accept') {
-				await channel.send({ content, embeds, files })
+				await channel.send({ content, embeds, files: newFiles })
 				await i.update({ content: `Сообщение от <@${message.author!.id}> (принято <@${i.user.id}>):\n\n${oldContent || ''}`, components })
 			} else if (i.customId === 'masterpiece.decline')
 				await i.update({ content: `Сообщение от <@${message.author!.id}> (отклонено <@${i.user.id}>):\n\n${oldContent || ''}`, components })
-	
+
 			try {
 				if (messageId)
 					(await message.author.createDM()).send({
