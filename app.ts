@@ -11,7 +11,7 @@ client.on('ready', () => {
 
 client.on('messageCreate', async message => {
 	try {
-		if (message.author === client.user || !(message.channelId in watchChannelIDs)) return
+		if (message.author === client.user || !watchChannelIDs.includes(message.channelId)) return
 	
 		const { channel, embeds } = message
 		const oldContent = message.content !== '' ? message.content : null
