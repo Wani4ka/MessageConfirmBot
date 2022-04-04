@@ -48,7 +48,8 @@ client.on('messageCreate', async message => {
 			acceptButton.setDisabled(true)
 			declineButton.setDisabled(true)
 			if (i.customId === 'masterpiece.accept') {
-				await channel.send({ content, embeds, files: newFiles })
+				const newContent = `Сообщение от <@${message.author!.id}>:\n\n${oldContent || ''}`
+				await channel.send({ content: newContent, embeds, files: newFiles })
 				await i.update({ content: `Сообщение от <@${message.author!.id}> (принято <@${i.user.id}>):\n\n${oldContent || ''}`, components })
 			} else if (i.customId === 'masterpiece.decline')
 				await i.update({ content: `Сообщение от <@${message.author!.id}> (отклонено <@${i.user.id}>):\n\n${oldContent || ''}`, components })
@@ -57,7 +58,7 @@ client.on('messageCreate', async message => {
 				if (messageId)
 					(await message.author.createDM()).send({
 						reply: {  messageReference: messageId, failIfNotExists: false },
-						content: i.customId === 'masterpiece.accept' ? 'Одобрено! Ищи себя в канале шедевров Мапперской' : 'Это сообщение было отклонено'
+						content: i.customId === 'masterpiece.accept' ? `Одобрено! Ищи себя в канале <#${channel.id}> Мапперской` : 'Это сообщение было отклонено'
 					})
 			} catch (err) { console.error(err) }
 			collector.stop()
