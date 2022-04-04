@@ -2,7 +2,7 @@ import 'dotenv/config'
 import { Client, Intents, MessageActionRow, MessageButton, TextChannel } from 'discord.js'
 const client = new Client({ intents: [Intents.FLAGS.GUILDS, Intents.FLAGS.GUILD_MESSAGES] })
 
-const watchChannelID = process.env.WATCH_CHANNEL_ID || ''
+const watchChannelIDs = (process.env.WATCH_CHANNEL_ID || '').split(',')
 const confirmChannelID = process.env.CONFIRM_CHANNEL_ID || ''
 
 client.on('ready', () => {
@@ -11,11 +11,11 @@ client.on('ready', () => {
 
 client.on('messageCreate', async message => {
 	try {
-		if (message.author === client.user || message.channelId !== watchChannelID) return
+		if (message.author === client.user || !(message.channelId in watchChannelIDs)) return
 	
 		const { channel, embeds } = message
 		const oldContent = message.content !== '' ? message.content : null
-		const content = `Сообщение от <@${message.author!.id}>:\n\n${oldContent || ''}`
+		const content = `Сообщение от <@${message.author!.id}> в <#${message.channelId}>:\n\n${oldContent || ''}`
 		const files = Array.from(message.attachments.values())
 	
 		let messageId: string
