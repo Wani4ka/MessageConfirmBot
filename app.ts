@@ -39,7 +39,7 @@ client.on('messageCreate', async message => {
 	
 		const confirmChannel = await client.channels.fetch(confirmChannelID) as TextChannel
 		const response = await confirmChannel.send({ content, embeds, files, components })
-		const newFiles = Array.from(message.attachments.values())
+		const newFiles = Array.from(response.attachments.values())
 
 		await message.delete()
 	
