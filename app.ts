@@ -84,7 +84,7 @@ client.on('interactionCreate', async i => {
 		}
 	} else if (cmd === 'decline') {
 		await i.update({
-			content: `Сообщение от <@${messageId}> в <#${channelId}> (отклонено <@${i.user.id}>):\n\n${content || ''}`,
+			content: `Сообщение от <@${authorId}> в <#${channelId}> (отклонено <@${i.user.id}>):\n\n${content || ''}`,
 			components: generateComponents(messageId, true)
 		})
 		notifyUser = true
