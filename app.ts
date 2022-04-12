@@ -1,5 +1,5 @@
 import 'dotenv/config'
-import { Client, Intents, MessageActionRow, MessageButton, TextChannel } from 'discord.js'
+import { Client, Intents, Message, MessageActionRow, MessageButton, TextChannel } from 'discord.js'
 const client = new Client({ intents: [Intents.FLAGS.GUILDS, Intents.FLAGS.GUILD_MESSAGES] })
 
 const watchChannelIDs = (process.env.WATCH_CHANNEL_ID || '').split(',')
@@ -9,63 +9,97 @@ client.on('ready', () => {
 	console.log(`Logged in as ${client.user!.tag}!`)
 })
 
+const generateComponents = (messageId: any, disabled = false) => {
+	const acceptButton = new MessageButton()
+		.setCustomId(`masterpiece::accept.${messageId || ''}`)
+		.setLabel('Принять')
+		.setStyle('SUCCESS')
+		.setDisabled(disabled)
+	const declineButton = new MessageButton()
+		.setCustomId(`masterpiece::decline.${messageId || ''}`)
+		.setLabel('Отклонить')
+		.setStyle('DANGER')
+		.setDisabled(disabled)
+	const components = [new MessageActionRow().addComponents(acceptButton, declineButton)]
+	return components
+}
+
 client.on('messageCreate', async message => {
 	try {
 		if (message.author === client.user || !watchChannelIDs.includes(message.channelId)) return
 	
-		const { channel, embeds } = message
+		const { embeds } = message
 		const oldContent = message.content !== '' ? message.content : null
 		const content = `Сообщение от <@${message.author!.id}> в <#${message.channelId}>:\n\n${oldContent || ''}`
 		const files = Array.from(message.attachments.values())
 	
-		let messageId: string
+		let messageId: string | undefined
 		try {
 			messageId = (await (await message.author.createDM()).send({
-				content: `Твое сообщение в канале шедевров Мапперской отправлено на проверку и появится в канале после модерации:\n\n${oldContent || ''}`,
+				content: `Твое сообщение в канале <#${message.channelId}> Мапперской отправлено на проверку и появится в канале после модерации:\n\n${oldContent || ''}`,
 				embeds,
 				files
 			})).id
 		} catch (err) { console.error(err) }
 	
-		const acceptButton = new MessageButton()
-			.setCustomId('masterpiece.accept')
-			.setLabel('Принять')
-			.setStyle('SUCCESS')
-		const declineButton = new MessageButton()
-			.setCustomId('masterpiece.decline')
-			.setLabel('Отклонить')
-			.setStyle('DANGER')
-		const components = [new MessageActionRow().addComponents(acceptButton, declineButton)]
-	
 		const confirmChannel = await client.channels.fetch(confirmChannelID) as TextChannel
-		const response = await confirmChannel.send({ content, embeds, files, components })
-		const newFiles = Array.from(response.attachments.values())
-
+		await confirmChannel.send({ content, embeds, files, components: generateComponents(messageId) })
 		await message.delete()
-	
-		const collector = response.createMessageComponentCollector({ componentType: 'BUTTON' })
-		collector.on('collect', async i => {
-			acceptButton.setDisabled(true)
-			declineButton.setDisabled(true)
-			if (i.customId === 'masterpiece.accept') {
-				const newContent = `Сообщение от <@${message.author!.id}>:\n\n${oldContent || ''}`
-				await channel.send({ content: newContent, embeds, files: newFiles })
-				await i.update({ content: `Сообщение от <@${message.author!.id}> (принято <@${i.user.id}>):\n\n${oldContent || ''}`, components })
-			} else if (i.customId === 'masterpiece.decline')
-				await i.update({ content: `Сообщение от <@${message.author!.id}> (отклонено <@${i.user.id}>):\n\n${oldContent || ''}`, components })
-
-			try {
-				if (messageId)
-					(await message.author.createDM()).send({
-						reply: {  messageReference: messageId, failIfNotExists: false },
-						content: i.customId === 'masterpiece.accept' ? `Одобрено! Ищи себя в канале <#${channel.id}> Мапперской` : 'Это сообщение было отклонено'
-					})
-			} catch (err) { console.error(err) }
-			collector.stop()
-		})
 	} catch (err) {
 		console.error(err)
 	}
+
+})
+
+client.on('interactionCreate', async i => {
+	if (!i.isButton()) return;
+
+	const msg = i.message as Message
+
+	let matches = /masterpiece::(accept|decline)\.(\d+)/g.exec(i.customId)
+	const cmd = matches![1], messageId = matches![2]
+	matches = /Сообщение от <@(\d+)> в <#(\d+)>:(?:\n\n([\w\W]+))?/gm.exec(msg.content)
+	const authorId = matches![1], channelId = matches![2], content = matches![3]
+
+	let notifyUser: boolean = false
+	if (cmd === 'accept') {
+		const newContent = `Сообщение от <@${authorId}>:\n\n${content || ''}`
+		await i.update({
+			content: `Сообщение от <@${authorId}> в <#${channelId}> (принято <@${i.user.id}>):\n\n${content || ''}`,
+			components: generateComponents(messageId, true)
+		})
+		try {
+			await (await client.channels.fetch(channelId) as TextChannel).send({
+				content: newContent,
+				embeds: msg.embeds,
+				files: Array.from(msg.attachments.values())
+			})
+			notifyUser = true
+		} catch (err) {
+			console.error(err)
+			await msg.edit({
+				content: `Сообщение от <@${authorId}> в <#${channelId}>:\n\n${content || ''}`,
+				components: generateComponents(messageId)
+			})
+		}
+	} else if (cmd === 'decline') {
+		await i.update({
+			content: `Сообщение от <@${messageId}> в <#${channelId}> (отклонено <@${i.user.id}>):\n\n${content || ''}`,
+			components: generateComponents(messageId, true)
+		})
+		notifyUser = true
+	}
+
+	try {
+		if (messageId !== '' && notifyUser) {
+			const user = await client.users.fetch(authorId)
+			const dm = await user.createDM()
+			await dm.send({
+				reply: {  messageReference: messageId, failIfNotExists: false },
+				content: cmd === 'accept' ? `Одобрено! Ищи себя в канале <#${channelId}> Мапперской` : 'Это сообщение было отклонено'
+			})
+		}
+	} catch (err) { console.error(err) }
 
 })
 
