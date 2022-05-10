@@ -1,5 +1,6 @@
 import 'dotenv/config'
 import { Client, Intents, Message, MessageActionRow, MessageButton, TextChannel } from 'discord.js'
+import { randomTitle, randomEmoji } from './randoms'
 const client = new Client({ intents: [Intents.FLAGS.GUILDS, Intents.FLAGS.GUILD_MESSAGES] })
 
 const watchChannelIDs = (process.env.WATCH_CHANNEL_ID || '').split(',')
@@ -69,10 +70,18 @@ client.on('interactionCreate', async i => {
 			components: generateComponents(messageId, true)
 		})
 		try {
-			await (await client.channels.fetch(channelId) as TextChannel).send({
+			const channel = await client.channels.fetch(channelId) as TextChannel
+			const published = await channel.send({
 				content: newContent,
 				embeds: msg.embeds,
 				files: Array.from(msg.attachments.values())
+			})
+			published.react(randomEmoji())
+			client.users.fetch(authorId).then(user => {
+				channel.threads.create({
+					name: randomTitle(user.username),
+					startMessage: published
+				})
 			})
 			notifyUser = true
 		} catch (err) {
