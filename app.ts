@@ -57,6 +57,7 @@ client.on('interactionCreate', async i => {
 
 	const msg = i.message as Message
 
+	console.log(i.customId)
 	let matches = /masterpiece::(accept|decline)\.(\d+)/g.exec(i.customId)
 	const cmd = matches![1], messageId = matches![2]
 	matches = /Сообщение от <@(\d+)> в <#(\d+)>:(?:\n\n([\w\W]+))?/gm.exec(msg.content)
