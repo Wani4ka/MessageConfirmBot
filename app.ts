@@ -113,8 +113,3 @@ client.on('interactionCreate', async i => {
 })
 
 client.login(process.env.BOT_TOKEN)
-
-import express from 'express'
-const app = express()
-app.get('/', (_req, res) => res.send('ok'))
-app.listen(process.env.PORT || 3000, () => console.log('web server up'))
